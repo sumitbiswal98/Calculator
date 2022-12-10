@@ -1,86 +1,88 @@
-pipeline
+pipeline 
 {
-    agent
+    
+    
+    agent 
     {
         label 'maven'
     }
     
-    
-    
-    
-    
-    stages
+    stages 
     {
+        
+        
         
         stage('Build')
         {
-            echo 'Building...'
-            sh 'mvn clean package'
+            steps
+            {
+                echo 'Building...'
+                sh 'mvn clean package'
+            }
         }
         
         
         stage('Create Container Image')
         {
-            steps
+            steps 
             {
                 echo 'create container image..'
                 script
                 {
                     openshift.withCluster()
                     {
-                        openshift.withProject("pipeline-lb9669-dev")
+                        openshift.withProject("ci-cd")
                         {
-                            def bc = openshift.selector("bc", "calculator").exists()
-                        
-                            if(!bc)
-                             {
-                                openshift.newBuild("--name=calculator", "--docker-image=registry.redhat.io/jboss-eap-7/eap74-openjdk8-openshift-rhel7", "--binary")
-                             }
-                        
-                                openshift.selector("bc", "calculator").startBuild("--from-file=target/webapp.war", "--follow")
-                        
-                        
+                            def buildConfigExists = openshift.selector("bc", "codelikethewind").exists()
+                            
+                            if(!buildConfigExists)
+                            {
+                                openshift.newBuild("--name=codelikethewind", "--docker-image=registry.redhat.io/jboss-eap-7/eap74-openjdk8-openshift-rhel7", "--binary")
+                            }
+                            
+                            openshift.selector("bc", "codelikethewind").startBuild("--from-file=target/simple-servlet-0.0.1-SNAPSHOT.war", "--follow")
+                            
                         }
                     }
                 }
             }
         }
+        
+        
         
         
         stage('Deploy')
         {
             steps
             {
-                echo 'Deploying...'
+                echo 'Deploying....'
                 script
                 {
                     openshift.withCluster()
                     {
-                        openshift.withProject("pipeline-lb9669-dev")
+                        openshift.withProject("ci-cd")
                         {
-                            def deployment = openshift.selector("dc", "calculator")
+                            def deployment = openshift.selector("dc", "codelikethewind")
                             
-                            if(!deployment.exist())
+                            if(!deployment.exists())
                             {
-                                openshift.newApp('calculator', "--as-deployment-config").narrow('svc').expose()
+                                openshift.newApp('codelikethewind', "--as-deployment-config").narrow('svc').expose()
                             }
                             
                             timeout(5)
                             {
-                                openshift.selector("dc", "calculator").related('pods').untilEach(1)
+                                openshift.selector("dc", "codelikethewind").related('pods').untilEach(1)
                                 {
-                                    return(it.object().status.phase == "Running")
+                                    return (it.object().status.phase == "Running")
                                 }
                             }
+                            
                             
                         }
                     }
                 }
             }
         }
-        
-        
-        
         
         
         
