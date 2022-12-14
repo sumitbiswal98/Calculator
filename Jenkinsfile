@@ -40,7 +40,7 @@ pipeline
                                 openshift.newBuild("--name=calculator", "--docker-image=registry.redhat.io/jboss-eap-7/eap74-openjdk8-openshift-rhel7", "--binary")
                             }
                             
-                            openshift.selector("bc", "calculator").startBuild("--from-file=target/Calculator-1.0.war", "--follow")
+                            openshift.selector("bc", "calculator").startBuild("--from-file=target/Calculator-1.0.jar", "--follow")
                             
                         }
                     }
